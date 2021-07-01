@@ -43,6 +43,7 @@ pub struct Client {
     url: reqwest::Url,
     last_event_id: Option<String>,
     last_try: Option<Instant>,
+    headers: HeaderMap,
 
     /// Reconnection time in milliseconds. Note that the reconnection time can be changed by the
     /// event stream, so changing this may not make a difference.
@@ -68,11 +69,22 @@ impl Client {
             last_event_id: None,
             last_try: None,
             retry: Duration::from_millis(DEFAULT_RETRY),
+            headers: HeaderMap::new(),
         }
     }
 
+    pub fn headers(&self) -> &HeaderMap {
+        &self.headers
+    }
+
+    pub fn headers_mut(&mut self) -> &mut HeaderMap {
+        &mut self.headers
+    }
+
     fn next_request(&mut self) -> Result<()> {
-        let mut headers = HeaderMap::with_capacity(2);
+        let mut headers = HeaderMap::with_capacity(2 + self.headers.len());
+        headers.extend(self.headers.clone());
+
         headers.insert(ACCEPT, HeaderValue::from_str("text/event-stream").unwrap());
         if let Some(ref id) = self.last_event_id {
             headers.insert("Last-Event-ID", HeaderValue::from_str(id).unwrap());
